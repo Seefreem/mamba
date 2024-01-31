@@ -331,7 +331,9 @@ class Block(nn.Module):
             residual: hidden_states = Mixer(LN(residual))
         """
         if not self.fused_add_norm:
+            # ADD
             residual = (hidden_states + residual) if residual is not None else hidden_states
+            # LN
             hidden_states = self.norm(residual.to(dtype=self.norm.weight.dtype))
             if self.residual_in_fp32:
                 residual = residual.to(torch.float32)
@@ -346,6 +348,7 @@ class Block(nn.Module):
                 residual_in_fp32=self.residual_in_fp32,
                 eps=self.norm.eps,
             )
+        # Mixer
         hidden_states = self.mixer(hidden_states, inference_params=inference_params)
         return hidden_states, residual
 

@@ -32,9 +32,13 @@ def create_block(
     device=None,
     dtype=None,
 ):
+    '''
+    创建由Mamba组成的神经网络 block
+    '''
     if ssm_cfg is None:
         ssm_cfg = {}
     factory_kwargs = {"device": device, "dtype": dtype}
+    # partial 是对现有函数的包装，返回指定了部分参数值的新函数。
     mixer_cls = partial(Mamba, layer_idx=layer_idx, **ssm_cfg, **factory_kwargs)
     norm_cls = partial(
         nn.LayerNorm if not rms_norm else RMSNorm, eps=norm_epsilon, **factory_kwargs
@@ -84,9 +88,12 @@ def _init_weights(
 
 
 class MixerModel(nn.Module):
+    '''
+    创建一个基于 Mamba的模型，这个模型有多个block，me看一个block包含了一个Mamba基本块。
+    '''
     def __init__(
         self,
-        d_model: int,
+        d_model: int, # 
         n_layer: int,
         vocab_size: int,
         ssm_cfg=None,
@@ -174,6 +181,11 @@ class MixerModel(nn.Module):
 
 
 class MambaLMHeadModel(nn.Module, GenerationMixin):
+    '''
+    This is a language model based on Mamba modules.
+    Mamba model + language model (head, here, only a linear layer that predicts the probability of the next token)
+    所以如果我要用的话，就直接改这个模型就好。把LM层去掉。或者我直接使用 MixerModel 就行。
+    '''
 
     def __init__(
         self,
@@ -218,6 +230,9 @@ class MambaLMHeadModel(nn.Module, GenerationMixin):
             )
         )
         self.tie_weights()
+        '''
+        整个模型分为两部分，一个是 MixerModel back bone， 另一个是 一个输出的线性层（用于转化为对下一个token的概率预测）
+        '''
 
     def tie_weights(self):
         self.lm_head.weight = self.backbone.embedding.weight
@@ -230,6 +245,7 @@ class MambaLMHeadModel(nn.Module, GenerationMixin):
         "position_ids" is just to be compatible with Transformer generation. We don't use it.
         num_last_tokens: if > 0, only return the logits for the last n tokens
         """
+
         hidden_states = self.backbone(input_ids, inference_params=inference_params)
         if num_last_tokens > 0:
             hidden_states = hidden_states[:, -num_last_tokens:]

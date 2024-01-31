@@ -1,5 +1,13 @@
 # Copyright (c) 2023, Tri Dao, Albert Gu.
 
+'''
+Example:
+python benchmarks/benchmark_generation_mamba_simple.py --model-name "state-spaces/mamba-2.8b" 
+--prompt "My cat wrote all this CUDA code for a new language model and" 
+--topp 0.9 --temperature 0.7 --repetition-penalty 1.2
+
+'''
+
 import argparse
 import time
 import json
@@ -79,10 +87,11 @@ else:
         top_p=args.topp,
         repetition_penalty=args.repetition_penalty,
     )
-out = fn()
+out = fn() # 这一行是在执行 inference，执行结果存在out中。需要注意的是，输出是得解码的。输出也是ids。
 if args.prompt is not None:
     print(tokenizer.batch_decode(out.sequences.tolist()))
 
+# 下面的代码是为了计算decode的时间开销
 torch.cuda.synchronize()
 start = time.time()
 for _ in range(repeats):
